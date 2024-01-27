@@ -1,3 +1,5 @@
+import torch.functional as F
+import matplotlib.pyplot as plt
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
@@ -10,6 +12,13 @@ class FNN(nn.Module):
         self.relu1 = nn.ReLU()
         self.fc2 = nn.Linear(128, 10)
         self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu1(x)
+        x = self.fc2(x)
+        x = self.softmax(x)
+        return x
 
 
 class CNN(nn.Module):
