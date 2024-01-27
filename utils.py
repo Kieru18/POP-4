@@ -2,41 +2,34 @@ import os
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import torch
-from torch.utils.data import DataLoader
+import tensorflow as tf
+from tensorflow.keras import layers, models
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 from typing import Tuple
-from neural_networks import FNN, RNN
-
+from neural_networks import FNN, RNN  # Assuming you have FNN and RNN defined in 'neural_networks'
 
 def set_seed(seed: int) -> None:
     np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+    tf.random.set_seed(seed)
+    if tf.config.list_physical_devices('GPU'):
+        tf.config.experimental.set_memory_growth(tf.config.list_physical_devices('GPU')[0], True)
 
-
-def evaluate(model: torch.nn.Module, data_loader: DataLoader) -> Tuple[float, float, float, np.ndarray]:
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    model.eval()
-
+def evaluate(model: tf.keras.Model, data_loader: tf.data.Dataset) -> Tuple[float, float, float, np.ndarray]:
     all_labels = []
     all_predictions = []
 
-    with torch.no_grad():
-        for images, labels in data_loader:
-            images, labels = images.to(device), labels.to(device)
+    for images, labels in data_loader:
+        images, labels = images.numpy(), labels.numpy()
 
-            # Flatten images if the model is FNN or RNN
-            if isinstance(model, (FNN, RNN)):
-                images = images.view(images.size(0), -1)
+        # Flatten images if the model is FNN or RNN
+        if isinstance(model, (FNN, RNN)):
+            images = images.reshape(images.shape[0], -1)
 
-            outputs = model(images)
-            _, predictions = torch.max(outputs, 1)
+        outputs = model(images)
+        predictions = np.argmax(outputs, axis=1)
 
-            all_labels.extend(labels.cpu().numpy())
-            all_predictions.extend(predictions.cpu().numpy())
+        all_labels.extend(labels)
+        all_predictions.extend(predictions)
 
     accuracy = accuracy_score(all_labels, all_predictions)
     precision = precision_score(all_labels, all_predictions, average='weighted')
@@ -44,7 +37,6 @@ def evaluate(model: torch.nn.Module, data_loader: DataLoader) -> Tuple[float, fl
     conf_matrix = confusion_matrix(all_labels, all_predictions)
 
     return accuracy, precision, recall, conf_matrix
-
 
 def plot_confusion_matrix(conf_matrix: np.ndarray, class_names, save: bool = False) -> None:
     # Normalize confusion matrix

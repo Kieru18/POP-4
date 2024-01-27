@@ -1,57 +1,34 @@
-import torch.functional as F
-import matplotlib.pyplot as plt
-from torch import nn
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
+import tensorflow as tf
+from tensorflow.keras import layers, models
 
-
-class FNN(nn.Module):
+class FNN(tf.keras.Model):
     def __init__(self):
         super(FNN, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 128)
-        self.relu1 = nn.ReLU()
-        self.fc2 = nn.Linear(128, 10)
-        self.softmax = nn.Softmax(dim=1)
+        self.flatten = layers.Flatten()
+        self.fc1 = layers.Dense(128, activation='relu')
+        self.fc2 = layers.Dense(10, activation='softmax')
 
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.relu1(x)
-        x = self.fc2(x)
-        x = self.softmax(x)
-        return x
-
-
-class CNN(nn.Module):
+class CNN(tf.keras.Model):
     def __init__(self):
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3)
-        self.relu1 = nn.ReLU()
-        self.maxpool1 = nn.MaxPool2d(2)
-        self.conv2 = nn.Conv2d(32, 64, 3)
-        self.relu2 = nn.ReLU()
-        self.maxpool2 = nn.MaxPool2d(2)
-        self.fc1 = nn.Linear(64 * 6 * 6, 128)
-        self.relu3 = nn.ReLU()
-        self.fc2 = nn.Linear(128, 10)
-        self.softmax = nn.Softmax(dim=1)
+        self.conv1 = layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1))
+        self.maxpool1 = layers.MaxPooling2D((2, 2))
+        self.conv2 = layers.Conv2D(64, (3, 3), activation='relu')
+        self.maxpool2 = layers.MaxPooling2D((2, 2))
+        self.flatten = layers.Flatten()
+        self.fc1 = layers.Dense(128, activation='relu')
+        self.fc2 = layers.Dense(10, activation='softmax')
 
-
-class RNN(nn.Module):
+class RNN(tf.keras.Model):
     def __init__(self):
         super(RNN, self).__init__()
-        self.rnn = nn.LSTM(28 * 28, 128, batch_first=True)
-        self.fc = nn.Linear(128, 10)
-        self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
+        self.rnn = layers.LSTM(128, return_sequences=False, input_shape=(None, 28 * 28))
+        self.fc = layers.Dense(10, activation='softmax')
 
-
-class CRNN(nn.Module):
+class CRNN(tf.keras.Model):
     def __init__(self):
         super(CRNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3)
-        self.relu1 = nn.ReLU()
-        self.maxpool1 = nn.MaxPool2d(2)
-        self.rnn = nn.LSTM(32 * 13 * 13, 128, batch_first=True)
-        self.fc = nn.Linear(128, 10)
-        self.relu2 = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
+        self.conv1 = layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1))
+        self.maxpool1 = layers.MaxPooling2D((2, 2))
+        self.rnn = layers.LSTM(128, return_sequences=False)
+        self.fc = layers.Dense(10, activation='softmax')
