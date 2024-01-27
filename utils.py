@@ -8,11 +8,13 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, confu
 from typing import Tuple
 from neural_networks import FNN, RNN  # Assuming you have FNN and RNN defined in 'neural_networks'
 
+
 def set_seed(seed: int) -> None:
     np.random.seed(seed)
     tf.random.set_seed(seed)
     if tf.config.list_physical_devices('GPU'):
         tf.config.experimental.set_memory_growth(tf.config.list_physical_devices('GPU')[0], True)
+
 
 def evaluate(model: tf.keras.Model, data_loader: tf.data.Dataset) -> Tuple[float, float, float, np.ndarray]:
     all_labels = []
@@ -38,6 +40,24 @@ def evaluate(model: tf.keras.Model, data_loader: tf.data.Dataset) -> Tuple[float
 
     return accuracy, precision, recall, conf_matrix
 
+
+def make_predictions(model: tf.keras.Model, images: np.ndarray) -> np.ndarray:
+    predictions = model.predict(images)
+
+    predicted_labels = np.argmax(predictions, axis=1)
+
+    return predicted_labels
+
+
+def calculate_metrics(predicted_labels: np.ndarray, true_labels: np.ndarray) -> Tuple[float, float, float, np.ndarray]:
+    accuracy = accuracy_score(true_labels, predicted_labels)
+    precision = precision_score(true_labels, predicted_labels, average='weighted')
+    recall = recall_score(true_labels, predicted_labels, average='weighted')
+    conf_matrix = confusion_matrix(true_labels, predicted_labels)
+
+    return accuracy, precision, recall, conf_matrix
+
+
 def plot_confusion_matrix(conf_matrix: np.ndarray, class_names, save: bool = False) -> None:
     # Normalize confusion matrix
     conf_matrix = conf_matrix.astype('float') / conf_matrix.sum(axis=1)[:, np.newaxis]
@@ -47,11 +67,11 @@ def plot_confusion_matrix(conf_matrix: np.ndarray, class_names, save: bool = Fal
     sns.set(font_scale=1.2)
     sns.heatmap(conf_matrix, annot=True, fmt=".2f", cmap="Blues", linewidths=.5, square=True,
                 xticklabels=class_names, yticklabels=class_names, cbar_kws={"shrink": 0.8})
-    
+
     plt.xlabel('Predicted Label')
     plt.ylabel('True Label')
     plt.title('Confusion Matrix')
-    
+
     if save:
         directory = 'results'
         if not os.path.exists(directory):
