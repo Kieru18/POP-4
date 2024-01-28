@@ -1,4 +1,5 @@
 import os
+import json
 from typing import Tuple, Iterable
 
 import numpy as np
@@ -6,16 +7,16 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
+from keras.utils import set_random_seed
 from keras.models import Model
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 
-from neural_networks import FNN, RNN
-import json
-
 
 def set_seed(seed: int) -> None:
-    np.random.seed(seed)
-    tf.random.set_seed(seed)
+    # np.random.seed(seed)
+    # tf.random.set_seed(seed)
+    # lines above are obsolete as keras handles all of them in one function
+    set_random_seed(seed)
 
 
 def make_predictions(model: Model, images: np.ndarray) -> np.ndarray:
