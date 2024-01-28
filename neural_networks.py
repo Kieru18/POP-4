@@ -5,14 +5,15 @@ import tensorflow_probability as tfp
 from tensorflow import keras
 from keras.models import Model
 from keras.layers import Dense, Flatten, LSTM, Conv2D, MaxPooling2D, Reshape
+from keras.initializers import RandomUniform
 
 
 class FNN(Model):
     def __init__(self, info: str = '', optimizer: Union[str, str] = 'sgd'):
         super(FNN, self).__init__()
         self.flatten = Flatten(input_shape=(28, 28))
-        self.dense1 = Dense(128, activation='relu')
-        self.dense2 = Dense(10, activation='softmax')
+        self.dense1 = Dense(128, activation='relu', kernel_initializer=RandomUniform(-1, 1))
+        self.dense2 = Dense(10, activation='softmax', kernel_initializer=RandomUniform(-1, 1))
 
         self.info = info
         self.optimizer = optimizer
