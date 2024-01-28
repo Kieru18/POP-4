@@ -1,1 +1,2 @@
 SEED = 42
+MODELS = ["FNN", "CNN", "RNN", "CRNN"]
