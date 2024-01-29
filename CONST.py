@@ -1,4 +1,4 @@
 SEED = 42
 POPULATION_SIZE = 20
 GENERATIONS = 500
-DE_HISTORY_PATH = "de_history/"
+HISTORY_PATH = "history/"
