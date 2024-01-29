@@ -43,6 +43,7 @@ def plot_confusion_matrix(conf_matrix: np.ndarray,
                           title: str,
                           save: bool = False) -> None:
     # Normalize confusion matrix
+    plt.clf()
     conf_matrix = conf_matrix.astype('float') / conf_matrix.sum(axis=1)[:, np.newaxis]
 
     # Plotting the confusion matrix
@@ -60,7 +61,6 @@ def plot_confusion_matrix(conf_matrix: np.ndarray,
         if not os.path.exists(directory):
             os.makedirs(directory)
         plt.savefig(os.path.join(directory, f'{title}.png'))
-        plt.clf()
     else:
         plt.show()
 
