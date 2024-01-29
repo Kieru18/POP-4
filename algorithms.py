@@ -4,12 +4,11 @@ from sklearn.metrics import accuracy_score
 import copy
 
 import numpy as np
-import json 
+import json
 
 from tensorflow import keras
 from deap import base, creator, tools
 from keras.losses import categorical_crossentropy
-
 
 set_seed(SEED)
 
@@ -56,18 +55,13 @@ def fitness_function(weights, model, test_images, test_labels, varaint='acc'):
         accuracy = accuracy_score(np.argmax(test_labels, axis=1), predicted_labels)
         print('___________________')
         print(f'Acc: {-accuracy}')
-        # return np.mean(loss.numpy())
         return -accuracy
 
     if varaint == 'cross':
         predicted_probs = model.predict(test_images)
         loss = categorical_crossentropy(test_labels, predicted_probs)
-
-        # predicted_labels = make_predictions(model, test_images)
-        # accuracy = accuracy_score(np.argmax(test_labels, axis=1), predicted_labels)
         print('___________________')
         print(f'Cross-entropy Loss: {np.sum(loss.numpy())}')
-        # print(f'Acc: {accuracy}')
         return np.sum(loss.numpy())
 
 
@@ -109,26 +103,21 @@ def de_best_1_bin_evolve(population_size, generations, model, F, CR, test_images
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("select", tools.selBest)
 
-    # Zainicjuj populację i ewaluuj ją
     pop = toolbox.population(n=population_size)
-    # pop[0] = creator.Individual(copy.deepcopy(initial_weights))
 
     if start_pop:
         for i, ind in enumerate(pop):
             new = copy.deepcopy(np.asarray(start_pop[i], dtype=object))
             pop[i] = creator.Individual(new)
 
-    # Dodaj model jako dodatkowy atrybut do każdego osobnika
     for ind in pop:
         ind.model = model
 
     for i in range(population_size):
         pop[i].fitness.values = deap_evaluate(pop[i], test_images, test_labels, variant)
 
-    # dodaj punkty początkowe do historii
     history = []
 
-    # Ewolucja przez określoną liczbę pokoleń
     for gen in range(generations):
         print()
         print('--------------------------')
@@ -136,31 +125,24 @@ def de_best_1_bin_evolve(population_size, generations, model, F, CR, test_images
 
         for i in range(len(pop)):
             print(f'Osobnik populacji numer: {i}')
-            # wybieramy punkt roboczy - najlepszy z populacji
             wp = toolbox.select(pop, 1)[0]
             working_point = np.asarray(toolbox.select(pop, 1)[0], dtype=object)
 
             print(f'Fitness of wp: {deap_evaluate(wp, test_images, test_labels, variant)}')
 
-            # wybieramy dwa losowe punkty jako baza modyfikacji
             indexes = np.random.choice(range(len(pop)), 2, replace=False)
 
             point_d = np.asarray(pop[indexes[0]], dtype=object)
             point_e = np.asarray(pop[indexes[1]], dtype=object)
 
-            # Utworzenie nowego punktu
             point_M = working_point + F*(point_d - point_e)
-
-            # Krzyżowanie punktów
 
             point_O = crossover(point_M, working_point, CR)
 
             point_O = creator.Individual(point_O)
             point_O.model = model
             point_O.fitness.values = deap_evaluate(point_O, test_images, test_labels, variant)
-            # Dodanie punktu do historii
-
-            # Zamiana punktu, jeżeli p_O jest lepszy
+           
             if point_O.fitness.values < pop[i].fitness.values:
                 print(f'old point fitness {pop[i].fitness.values}')
                 print(f'new point fitness {point_O.fitness.values}')
@@ -171,8 +153,6 @@ def de_best_1_bin_evolve(population_size, generations, model, F, CR, test_images
     for i in range(population_size):
         pop[i].fitness.values = deap_evaluate(pop[i], test_images, test_labels, variant)
 
-
-    # Zwróć najlepszego osobnika
     best = toolbox.select(pop, 1)[0]
     print(best.fitness.values)
     return best, pop, history
@@ -191,22 +171,18 @@ def mu_lambda_es_evolve(mu, lambda_, sigma, generations, test_images, test_label
             new = copy.deepcopy(np.asarray(start_pop[i], dtype=object))
             pop[i] = creator.Individual(new)
         
-    # Dodaj model jako dodatkowy atrybut do każdego osobnika
     for ind in pop:
         ind.model = model
 
     for i in range(len(pop)):
         pop[i].fitness.values = deap_evaluate(pop[i], test_images, test_labels, variant)
 
-    # dodaj punkty początkowe do historii
     history = []
 
-    # Ewolucja przez określoną liczbę pokoleń
     for generation in range(generations):
         print()
         print('--------------------------')
         print(f'Ewolucja generacja: {generation}')
-        # Mutate the current weights
         offspring = []
         for i in range(mu):
             print(f'Osobnik populacji numer: {i}')
@@ -219,46 +195,40 @@ def mu_lambda_es_evolve(mu, lambda_, sigma, generations, test_images, test_label
 
                 offspring.append(mutated_ind)
 
-        # Połącz rodziców i potomków
         combined_pop = pop + offspring
 
-        # Wybierz μ najlepszych osobników
         pop = toolbox.select(combined_pop, mu)
 
-        # Dodaj do historii
         history.append(get_accuracy(toolbox.select(pop, 1)[0], model, test_images, test_labels))
 
     for i in range(len(pop)):
         pop[i].fitness.values = deap_evaluate(pop[i], test_images, test_labels, variant)
 
-    # Zwróć najlepszego osobnika
     best = toolbox.select(pop, 1)[0]
     print(best.fitness.values)
     return best, pop, history
 
 
 def adapt_F(F_history):
-    # Simple adaptive logic based on the overall trend
     if len(F_history) >= 3:
         recent_changes = np.diff(F_history[-3:])
         if all(change > 0 for change in recent_changes):
-            return F_history[-1] * 0.9  # Decrease F if it has been increasing
+            return F_history[-1] * 0.9
         elif all(change < 0 for change in recent_changes):
-            return F_history[-1] * 1.1  # Increase F if it has been decreasing
+            return F_history[-1] * 1.1
 
-    return F_history[-1]  # Keep the same otherwise
+    return F_history[-1]
 
 
 def adapt_CR(CR_history):
-    # Simple adaptive logic based on the overall trend
     if len(CR_history) >= 3:
         recent_changes = np.diff(CR_history[-3:])
         if all(change > 0 for change in recent_changes):
-            return CR_history[-1] * 0.9  # Decrease CR if it has been increasing
+            return CR_history[-1] * 0.9
         elif all(change < 0 for change in recent_changes):
-            return CR_history[-1] * 1.1  # Increase CR if it has been decreasing
+            return CR_history[-1] * 1.1
 
-    return CR_history[-1]  # Keep the same otherwise
+    return CR_history[-1]
 
 
 def jade_evolve(population_size, generations, model, F, CR, test_images, test_labels, variant, start_pop=None):
@@ -270,27 +240,22 @@ def jade_evolve(population_size, generations, model, F, CR, test_images, test_la
     mu_F = 0.5
     mu_CR = 0.5
     c = 0.1
-
-    # Zainicjuj populację i ewaluuj ją
+    
     pop = toolbox.population(n=population_size)
-    # pop[0] = creator.Individual(copy.deepcopy(initial_weights))
 
     if start_pop:
         for i, ind in enumerate(pop):
             new = copy.deepcopy(np.asarray(start_pop[i], dtype=object))
             pop[i] = creator.Individual(new)
 
-    # Dodaj model jako dodatkowy atrybut do każdego osobnika
     for ind in pop:
         ind.model = model
 
     for i in range(population_size):
         pop[i].fitness.values = deap_evaluate(pop[i], test_images, test_labels, variant)
 
-    # dodaj punkty początkowe do historii
     history = []
 
-    # Ewolucja przez określoną liczbę pokoleń
     for gen in range(generations):
         print()
         print('--------------------------')
@@ -306,31 +271,25 @@ def jade_evolve(population_size, generations, model, F, CR, test_images, test_la
             F = F_values[i]
             CR = CR_values[i]
             print(f'Osobnik populacji numer: {i}')
-            # wybieramy punkt roboczy - najlepszy z populacji
+            
             wp = toolbox.select(pop, 1)[0]
             working_point = np.asarray(toolbox.select(pop, 1)[0], dtype=object)
 
             print(f'Fitness of wp: {deap_evaluate(wp, test_images, test_labels, variant)}')
 
-            # wybieramy dwa losowe punkty jako baza modyfikacji
             indexes = np.random.choice(range(len(pop)), 2, replace=False)
 
             point_d = np.asarray(pop[indexes[0]], dtype=object)
             point_e = np.asarray(pop[indexes[1]], dtype=object)
 
-            # Utworzenie nowego punktu
             point_M = working_point + F*(point_d - point_e)
-
-            # Krzyżowanie punktów
 
             point_O = crossover(point_M, working_point, CR)
 
             point_O = creator.Individual(point_O)
             point_O.model = model
             point_O.fitness.values = deap_evaluate(point_O, test_images, test_labels, variant)
-            # Dodanie punktu do historii
 
-            # Zamiana punktu, jeżeli p_O jest lepszy
             if point_O.fitness.values < pop[i].fitness.values:
                 print(f'old point fitness {pop[i].fitness.values}')
                 print(f'new point fitness {point_O.fitness.values}')
@@ -351,8 +310,6 @@ def jade_evolve(population_size, generations, model, F, CR, test_images, test_la
     for i in range(population_size):
         pop[i].fitness.values = deap_evaluate(pop[i], test_images, test_labels, variant)
 
-
-    # Zwróć najlepszego osobnika
     best = toolbox.select(pop, 1)[0]
     print(best.fitness.values)
     return best, pop, history
