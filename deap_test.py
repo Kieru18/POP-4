@@ -3,6 +3,7 @@ from tensorflow import keras
 from CONST import SEED
 from neural_networks import FNN, CNN, CRNN
 from utils import set_seed, plot_confusion_matrix, make_predictions, calculate_metrics
+from sklearn.metrics import accuracy_score
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -102,17 +103,12 @@ class_names = [str(i) for i in range(10)]
 
 
 def fitness_function(weights, model):
-    print('___________________')
-    print(f'Weights: {weights[0].shape}')
+
     model.set_weights(weights)
     predicted_labels = make_predictions(model, test_images)
-    print('___________________')
-    print(f'Labels P: {predicted_labels.shape} {predicted_labels}')
-    print('___________________')
-    print(f'Labels P: {np.argmax(test_labels, axis=1).shape} {np.argmax(test_labels, axis=1)}')
 
-    _, accuracy = model.evaluate(test_images, test_labels, verbose=0)
-    # Załóżmy, że chcemy minimalizować sumę wag jako przykład
+    accuracy = accuracy_score(np.argmax(test_labels, axis=1), predicted_labels)
+
     print('___________________')
     print(f'Acc: {-accuracy}')
     return -accuracy
@@ -123,8 +119,8 @@ creator.create("Individual", list, fitness=creator.FitnessMin)
 
 
 def generate_individual(model):
-    weights_shapes = np.asarray([array.shape for array in model.get_weights()])
-    individual = [np.random.uniform(low=-1.0, high=1.0, size=shape) for shape in weights_shapes]
+    weights_shapes = np.asarray([array.shape for array in fnn_model.get_weights()], dtype=object)
+    individual = [np.random.uniform(low=-2.0, high=2.0, size=shape) for shape in weights_shapes]
     return creator.Individual(individual)
 
 
@@ -133,56 +129,96 @@ def generate_population(population_size, model):
 
 
 def deap_evaluate(individual):
-    print('___________________')
-    print(f'Model: {individual.model}')
-    print(f'Type: {type(individual)}')
+    # print('___________________')
+    # print(f'Model: {individual.model}')
+    # print(f'Type: {type(individual)}')
     return fitness_function(individual, individual.model),
 
 
-def deap_evolve(population_size, generations, model):
+def crossover(child, parent, CR):
+    output = parent.copy()
+    for i1, layer_child in np.ndenumerate(child):
+        if len(layer_child.shape) == 2:
+            for i2, layer_n_child in enumerate(layer_child):
+                for i3, value in enumerate(layer_n_child):
+                    if np.random.rand() > CR:
+                        output[i1[0]][i2][i3] = value
+        else:
+            for i2, value in enumerate(layer_child):
+                if np.random.rand() > CR:
+                    output[i1[0]][i2] = value
+            
+    return output
+
+
+def deap_evolve(population_size, generations, model, F, CR):
     toolbox = base.Toolbox()
     toolbox.register("individual", generate_individual, model=model)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-    toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1, indpb=0.2)
     toolbox.register("select", tools.selBest)
 
     # Zainicjuj populację i ewaluuj ją
     pop = toolbox.population(n=population_size)
 
+    print('--------------------')
+    print(f'Pop SIZE: {len(pop)}')
+    print('--------------------')
     # Dodaj model jako dodatkowy atrybut do każdego osobnika
+
     for ind in pop:
         ind.model = model
+
+    history = []
+    history.append(pop)
 
     fitnesses = list(map(deap_evaluate, pop))
     for ind, fit in zip(pop, fitnesses):
         ind.fitness.values = fit
         # print(ind.model)
 
+    print('___________________')
     # Ewolucja przez określoną liczbę pokoleń
     for gen in range(generations):
-        # Wybór rodziców
-        parents = toolbox.select(pop, len(pop))
+        print(f'Ewolucja generacja: {gen}')
 
-        # Skrzyżowanie i mutacja
-        offspring = tools.cxTwoPoint(parents[0], parents[1])
-        offspring = list(toolbox.mutate(child) for child in offspring)
+        for i in range(len(pop)):
+            print(f'Osobnik populacji numer: {i}')
+            # wybieramy punkt roboczy - najlepszy z populacji
+            wp = toolbox.select(pop, 1)[0]
+            working_point = np.asarray(toolbox.select(pop, 1)[0], dtype=object)
+
+            print(f'Fintess of wp: {wp.fitness.values}')
+
+            # wybieramy dwa losowe punkty jako baza modyfikacji
+            indexes = np.random.choice(range(len(pop)), 2, replace=False)
+
+            point_d = np.asarray(pop[indexes[0]], dtype=object)
+            point_e = np.asarray(pop[indexes[1]], dtype=object)
+
+            # Utworzenie nowego punktu
+            point_M = working_point + F*(point_d - point_e)
+
+            # Krzyżowanie punktów
+
+            point_O = crossover(point_M, working_point, CR).copy()
+
+            point_O = creator.Individual(point_O)
+            point_O.model = model
+
+            # Dodanie punktu do historii
+            history.append(point_O)
+
+            # przypisanie fitness dla każdego z punktów
+            fitness_current = deap_evaluate(pop[i])
+            fitness_point_O = deap_evaluate(point_O)
+
+            # Zamiana punktu, jeżeli p_O jest lepszy
+            if fitness_point_O < fitness_current:
+                pop[i][:] = point_O.copy()
 
         print('___________________')
-        print(f'Offsprings:')
-        for i, ind in enumerate(offspring):
-            offspring[i] = ind[0]
-            print(type(offspring[i]))
-            print(offspring[i][0])
-
-        # Ewaluacja potomstwa
-        fitnesses = list(map(deap_evaluate, offspring))
-        for ind, fit in zip(offspring, fitnesses):
-            ind.fitness.values = fit
-            print(ind.model)
-
-        # Zastąpienie starej populacji potomstwem
-        pop[:] = offspring
+        print(f'Pop SIZE: {len(pop)}')
+        print('___________________')
 
     # Zwróć najlepszego osobnika
     return tools.selBest(pop, 1)[0]
@@ -190,25 +226,46 @@ def deap_evolve(population_size, generations, model):
 
 fnn_model = FNN()
 
-population_size = 10
-generations = 20
+population_size = 20
+generations = 3
 
 # Stwórz model FNN
 fnn_model = FNN()
 fnn_model.build(input_shape=(1, 28, 28))
-fnn_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
 initial_weights = fnn_model.get_weights()
-weights_shapes = np.asarray([array.shape for array in fnn_model.get_weights()])
+weights_shapes = np.asarray([array.shape for array in fnn_model.get_weights()], dtype=object)
 flatten_weights = np.concatenate([w.flatten() for w in fnn_model.get_weights()])
+
+# for j, layer_child in np.ndenumerate(initial_weights):
+#     print(type(layer_child))
+#     print(layer_child.shape)
+#     if len(layer_child.shape) > 1:
+#         for v, layer_n_child in enumerate(layer_child):
+#             print(type(layer_n_child))
+#             for r, value in enumerate(layer_n_child):
+#                 #swap values 
+#                 value_right = 1 #value_left
+#     else:
+#         for value in layer_n_child:
+#             #print(type(value))
+#             #swap values 
+#             value_right = 1 #value_left
+        
+#     # for k in range(layer_child.shape[0]):
+#     #     if np.random.rand() > 0.5:
+#     #         xaa = 2
+
 
 
 # Uruchom ewolucję
-best_individual = deap_evolve(population_size, generations, fnn_model)
+best_individual = deap_evolve(population_size, generations, fnn_model, 4, 0.1)
 
 # Ustaw wagi modelu na najlepsze znalezione przez algorytm
 fnn_model.set_weights(best_individual)
+predicted_labels = make_predictions(fnn_model, test_images)
+accuracy = accuracy_score(np.argmax(test_labels, axis=1), predicted_labels)
 
-_, accuracy = fnn_model.evaluate(test_images, test_labels, verbose=0)
 # Załóżmy, że chcemy minimalizować sumę wag jako przykład
 print('___________________')
 print(f'Acc: {-accuracy}')
