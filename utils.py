@@ -60,6 +60,7 @@ def plot_confusion_matrix(conf_matrix: np.ndarray,
         if not os.path.exists(directory):
             os.makedirs(directory)
         plt.savefig(os.path.join(directory, f'{title}.png'))
+        plt.clf()
     else:
         plt.show()
 
@@ -73,6 +74,22 @@ def save_metrics(name: str, **kwargs):
     with open(filepath, 'w') as file:
             json.dump(kwargs, file)
 
-def save_history(model_name: str, history: List[float]):
+def save_history(model_name: str, history: List[float], plot: bool = False):
     with open(f'{HISTORY_PATH}{model_name}.json', 'w') as f:
-            json.dump(history, f)
+        json.dump(history, f)
+
+    if plot:
+        label = 'Generations' if 'ES' in model_name or 'DE' in model_name else 'Epochs' 
+        
+        plot_history(model_name, history, label)
+ 
+def plot_history(model_name: str, history: List[float], label: str = 'Epochs'):
+    plt.clf()
+    x = range(1, len(history)+1)
+    plt.xticks(x)
+    plt.plot(x, history, marker='o')
+    plt.title(f'{model_name} Training Accuracy Over Time')
+    plt.xlabel(label)
+    plt.ylabel('Accuracy')
+    plt.grid(True)
+    plt.savefig(f'{HISTORY_PATH}{model_name}_accuracy_plot.png')
