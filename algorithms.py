@@ -121,14 +121,14 @@ def de_best_1_bin_evolve(population_size, generations, model, F, CR, test_images
     for gen in range(generations):
         print()
         print('--------------------------')
-        print(f'Ewolucja generacja: {gen}')
+        print(f'Evolution - generation: {gen}')
 
         for i in range(len(pop)):
-            print(f'Osobnik populacji numer: {i}')
+            print(f'Individual number: {gen}_{i}')
             wp = toolbox.select(pop, 1)[0]
             working_point = np.asarray(toolbox.select(pop, 1)[0], dtype=object)
 
-            print(f'Fitness of wp: {deap_evaluate(wp, test_images, test_labels, variant)}')
+            print(f'Fitness of working point: {deap_evaluate(wp, test_images, test_labels, variant)}')
 
             indexes = np.random.choice(range(len(pop)), 2, replace=False)
 
@@ -142,7 +142,7 @@ def de_best_1_bin_evolve(population_size, generations, model, F, CR, test_images
             point_O = creator.Individual(point_O)
             point_O.model = model
             point_O.fitness.values = deap_evaluate(point_O, test_images, test_labels, variant)
-           
+ 
             if point_O.fitness.values < pop[i].fitness.values:
                 print(f'old point fitness {pop[i].fitness.values}')
                 print(f'new point fitness {point_O.fitness.values}')
@@ -182,10 +182,10 @@ def mu_lambda_es_evolve(mu, lambda_, sigma, generations, test_images, test_label
     for generation in range(generations):
         print()
         print('--------------------------')
-        print(f'Ewolucja generacja: {generation}')
+        print(f'Evolution - generation: {generation}')
         offspring = []
         for i in range(mu):
-            print(f'Osobnik populacji numer: {i}')
+            print(f'Individual number: {generation}_{i}')
             weights = np.asarray(pop[i], dtype=object)
             for i in range(lambda_):
                 mutated_weights = [w + sigma * np.random.randn(*w.shape) for w in weights]
