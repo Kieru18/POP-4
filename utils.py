@@ -84,10 +84,9 @@ def save_history(model_name: str, history: List[float], plot: bool = False):
         plot_history(model_name, history, label)
  
 def plot_history(model_name: str, history: List[float], label: str = 'Epochs'):
+    history.insert(0, 0)
     plt.clf()
-    x = range(1, len(history)+1)
-    plt.xticks(x)
-    plt.plot(x, history, marker='o')
+    plt.plot(history, marker='o')
     plt.title(f'{model_name} Training Accuracy Over Time')
     plt.xlabel(label)
     plt.ylabel('Accuracy')
