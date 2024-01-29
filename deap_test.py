@@ -93,4 +93,4 @@ print("Confusion Matrix:")
 print(conf_matrix)
 
 # Plot the confusion matrix
-plot_confusion_matrix(conf_matrix, class_names)
+plot_confusion_matrix(conf_matrix, class_names, title="Confusion matrix FNN - DE")

@@ -88,10 +88,8 @@ def de_rand_1_bin_evolve(population_size, generations, model, F, CR, test_images
 
     if start_pop:
         for i, ind in enumerate(pop):
-            print(type(ind))
             new = copy.deepcopy(np.asarray(start_pop[i], dtype=object))
             pop[i] = creator.Individual(new)
-            print(fitness_function(pop[i], model, test_images, test_labels))
 
     # Dodaj model jako dodatkowy atrybut do każdego osobnika
     for ind in pop:
