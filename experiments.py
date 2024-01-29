@@ -47,7 +47,7 @@ class_names = [str(i) for i in range(10)]
 
 models: List[Model] = [
     FNN('SGD'), FNN('ES'), FNN('DE'),
-    CNN('SGD'), CNN('ES'), CNN('DE'),
+    # CNN('SGD'), CNN('ES'), CNN('DE'),
     # CRNN('SGD'), CRNN('ES'), CRNN('DE')
 ]
 
@@ -77,15 +77,15 @@ for model in models:
     elif model.info == 'DE':
         model.build((1, 28, 28, 1))
 
-        best_individual2, pop, history = mu_lambda_es_evolve(mu=5, 
-                                                             lambda_=5, 
-                                                             sigma=0.1, 
-                                                             generations=10, 
-                                                             test_images=val_images,
-                                                             test_labels=val_labels, 
-                                                             model=model,  
-                                                             variant='cross', 
-                                                             start_pop=None)
+        best_individual, pop, history = mu_lambda_es_evolve(mu=5, 
+                                                            lambda_=5, 
+                                                            sigma=0.1, 
+                                                            generations=GENERATIONS, 
+                                                            test_images=val_images,
+                                                            test_labels=val_labels, 
+                                                            model=model,  
+                                                            variant='cross', 
+                                                            start_pop=None)
 
         model.set_weights(best_individual)
         history = np.multiply(history, -1).tolist()
